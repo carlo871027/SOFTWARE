@@ -1,0 +1,25 @@
+La extensión definida por el usuario puede establecer un valor no nulo returnCodey proporcionar su propia recuperación de errores, si es necesario. Las llamadas a la función de utilidad regresan a la extensión definida por el usuario y pasan su estado returnCode. Todas las excepciones que se produzcan en una función de utilidad deben devolverse al nodo de integración para que se lleve a cabo una recuperación adicional de errores; es decir, cuando se devuelve CCI_EXCEPTION returnCode. Para ello, llame a cciRethrowLastException , después de que la extensión definida por el usuario haya completado su propio procesamiento de errores. Llamar a cciRethrowLastException hace que la interfaz C vuelva a lanzar la última excepción para que pueda ser manejada por otras capas en el nodo de integración. De la misma manera que la salida de llamada de , C cciRethrowLastException no vuelve en este caso.
+
+Si ocurre una excepción y es detectada por una extensión definida por el usuario, la extensión no debe llamar a funciones de utilidad excepto cciGetLastExceptionData , cciGetLastExceptionDataW o cciRethrowLastException . Un intento de llamar a otras funciones de utilidad da como resultado un comportamiento impredecible que puede comprometer la integridad del nodo de integración.
+
+Si una extensión definida por el usuario encuentra un error grave, se puede utilizar cciThrowException o cciThrowExceptionW para generar una excepción que el nodo de integración procesa de la manera correcta. La generación de tal excepción hace que la información proporcionada se escriba en el registro del sistema (syslog o Eventviewer) si no se maneja la excepción. La información también se escribe para rastrear (si el rastreo está activo).
+
+Tema principal:
+¿Por qué utilizar una extensión definida por el usuario?
+Tipos de excepción y comportamiento del nodo de integración
+El nodo de integración genera un conjunto de excepciones que se pueden pasar a una extensión definida por el usuario. Estas excepciones también pueden ser generadas por una extensión definida por el usuario cuando se encuentra una condición de error. Las clases de excepción son:
+
+Fatal
+Las excepciones fatales se generan cuando ocurre una condición que impide que el proceso del nodo de integración continúe con la ejecución de forma segura, o cuando la política del nodo de integración es terminar el proceso. Ejemplos de excepciones fatales son la imposibilidad de adquirir un recurso crítico del sistema o un error de software grave detectado internamente. El proceso del nodo de integración finaliza tras el lanzamiento de una excepción irrecuperable. Se registran las excepciones fatales.
+Recuperable
+Estas excepciones se generan para errores que, aunque no de naturaleza terminal, significan que el procesamiento del flujo de mensajes actual debe finalizar. Ejemplos de excepciones recuperables son datos no válidos en el contenido de un mensaje o una falla al escribir un mensaje en un nodo de salida. Cuando se lanza una excepción recuperable, el procesamiento del mensaje actual se cancela en ese hilo, pero el hilo reinicia la ejecución en su nodo de entrada. Las excepciones recuperables no se registran.
+Configuración
+Las excepciones de configuración se generan cuando falla una solicitud de configuración. Esto puede deberse a un error en el formato de la solicitud de configuración o un error en los datos. Cuando se lanza una excepción de configuración, la solicitud se rechaza y se devuelve un mensaje de respuesta de error. Las excepciones de configuración no se registran.
+Analizador
+Estas excepciones son generadas por analizadores de mensajes para errores que impiden analizar el contenido del mensaje o crear un flujo de bits. El nodo de integración trata una excepción del analizador como una excepción recuperable. Las excepciones del analizador normalmente se registran a menos que se consideren excepciones recuperables.
+Conversión
+Estas excepciones las generan las funciones de conversión de caracteres del nodo de integración si se encuentran datos no válidos al intentar convertir a otro tipo de datos. El nodo de integración trata una excepción de conversión como una excepción recuperable y, por lo tanto, no se registra.
+Usuario
+Estas excepciones se generan cuando un nodo Throw lanza una excepción definida por el usuario. Se registran las excepciones de usuario.
+Base de datos
+Estas excepciones se generan cuando un sistema de gestión de bases de datos informa de un error durante la operación del nodo de integración. El nodo de integración trata una excepción de base de datos como una excepción recuperable. Las excepciones de la base de datos se registran si resultan en una condición fatal.
